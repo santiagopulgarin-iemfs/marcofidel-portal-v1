@@ -1,11 +1,29 @@
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, BookOpen, CalendarDays, FileText, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Carousel } from "@/components/sites/colegio/carousel";
-import { hrefFor, offer, quickLinks, SCHOOL } from "@/components/sites/colegio/content";
+import { hrefFor, offer, quickLinks } from "@/components/sites/colegio/content";
 import { T } from "@/components/sites/colegio/i18n";
 import { Placeholder } from "@/components/sites/colegio/placeholder";
 
 const wrap = "mx-auto w-full max-w-[1240px] px-6 xl:px-0";
+
+// Ícono de cada acceso rápido (verde claro; se oscurece un poco al pasar el mouse)
+const quickIcons: Record<string, LucideIcon> = {
+  "Calendario escolar": CalendarDays,
+  "Manual de convivencia": BookOpen,
+  "Trámites y formatos": FileText,
+};
+
+function QuickIcon({ label }: { label: string }) {
+  const Icon = quickIcons[label] ?? FileText;
+  return (
+    <Icon
+      className="size-10 text-soft transition-colors duration-200 group-hover:text-deep-hover group-focus-visible:text-deep-hover"
+      strokeWidth={1.75}
+      aria-hidden
+    />
+  );
+}
 
 function Pill({ href, children }: { href: string; children: React.ReactNode }) {
   return (
@@ -30,34 +48,19 @@ export default function Home() {
           <Link
             key={q.label}
             href={hrefFor(q.link)}
-            className="flex h-[135px] items-end justify-center rounded-3xl border border-ink/30 pb-5 text-2xl font-extrabold transition duration-200 ease-out hover:-translate-y-2 hover:border-brand hover:shadow-[0_12px_24px_rgba(0,0,0,0.12)] focus-visible:-translate-y-2 focus-visible:border-brand motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+            className="group flex h-[135px] flex-col items-center justify-end gap-3 rounded-3xl border border-ink/30 pb-5 text-2xl font-extrabold transition duration-200 ease-out hover:-translate-y-2 hover:border-brand hover:shadow-[0_12px_24px_rgba(0,0,0,0.12)] focus-visible:-translate-y-2 focus-visible:border-brand motion-reduce:transition-none motion-reduce:hover:translate-y-0"
           >
+            <QuickIcon label={q.label} />
             <T>{q.label}</T>
           </Link>
         ))}
-      </section>
-
-      <section className={`${wrap} py-8 lg:py-12`}>
-        <h2 className="text-4xl font-extrabold leading-[41px]">
-          <T>{SCHOOL.name}</T>
-        </h2>
-        <p className="mt-6 max-w-[900px] text-lg leading-[28.8px] text-body">
-          <T
-            vars={{ tagline: SCHOOL.tagline, city: SCHOOL.city, motto: SCHOOL.motto, founded: SCHOOL.founded }}
-            tvars={["tagline", "motto"]}
-          >
-            {
-              "{tagline}. Somos una institución educativa de {city}, con una pedagogía basada en proyectos integradores para formar líderes del cambio social. Nuestro escudo resume el camino: {motto}, desde {founded}."
-            }
-          </T>
-        </p>
       </section>
 
       <section className={`${wrap} py-12 lg:py-16`}>
         <h2 className="text-4xl font-extrabold leading-[41px]">
           <T>Programas y énfasis</T>
         </h2>
-        <div className="mt-8 flex flex-wrap gap-4">
+        <div className="mt-8 flex flex-col items-start gap-4 lg:flex-row lg:flex-wrap">
           {offer.map((o) => (
             <Pill key={o} href={hrefFor(o)}>
               <T>{o}</T>

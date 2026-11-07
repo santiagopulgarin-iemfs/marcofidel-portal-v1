@@ -43,7 +43,7 @@ export function AccessibilitySidebar() {
     <aside
       ref={ref}
       aria-label={t("Herramientas rápidas de accesibilidad")}
-      className="fixed right-0 top-1/3 z-[55] flex flex-col gap-2 rounded-l-2xl bg-deep p-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.25)] lg:top-1/2 lg:-translate-y-1/2 lg:gap-3 lg:p-3"
+      className="fixed right-0 top-1/3 z-[55] [body[data-menu-open]_&]:hidden flex flex-col gap-2 rounded-l-2xl bg-deep p-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.25)] lg:top-1/2 lg:-translate-y-1/2 lg:gap-3 lg:p-3"
     >
       {/* Pestaña para abrir y cerrar (solo celular y tableta) */}
       <button

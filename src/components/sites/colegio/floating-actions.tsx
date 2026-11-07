@@ -1,16 +1,15 @@
-import { Headphones, NotebookPen } from "lucide-react";
+import { Headphones } from "lucide-react";
 import Link from "next/link";
 import { hrefFor } from "./content";
 import { T } from "./i18n";
 
 const actions = [
-  { t: "Inscríbete", I: NotebookPen, to: "Proceso de admisión" },
   { t: "Contáctanos", I: Headphones, to: "Contacto" },
 ];
 
 export function FloatingActions() {
   return (
-    <div className="fixed bottom-[calc(1.5rem_+_env(safe-area-inset-bottom))] right-6 z-[60] grid gap-3">
+    <div className="fixed bottom-[calc(1.5rem_+_env(safe-area-inset-bottom))] right-6 z-[60] grid gap-3 [body[data-menu-open]_&]:hidden">
       {actions.map(({ t, I, to }) => (
         <Link
           key={t}

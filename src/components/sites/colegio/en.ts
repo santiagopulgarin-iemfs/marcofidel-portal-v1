@@ -5,7 +5,6 @@
  */
 export const EN: Record<string, string> = {
   // --- Colegio
-  "Institución Educativa Marco Fidel Suárez": "Marco Fidel Suárez Educational Institution",
   "Ciencia y Valores": "Science and Values",
   "Promoviendo la excelencia y el desarrollo social": "Promoting excellence and social development",
 
@@ -124,8 +123,6 @@ export const EN: Record<string, string> = {
 
   // --- Portada
   "Imagen principal del colegio": "Main school image",
-  "{tagline}. Somos una institución educativa de {city}, con una pedagogía basada en proyectos integradores para formar líderes del cambio social. Nuestro escudo resume el camino: {motto}, desde {founded}.":
-    "{tagline}. We are an educational institution in {city}, with a pedagogy based on integrative projects to develop leaders of social change. Our crest sums up the path: {motto}, since {founded}.",
   "Programas y énfasis": "Programs and focus areas",
   "¿Por qué elegirnos?": "Why choose us?",
   Servicios: "Services",
@@ -182,10 +179,11 @@ export const EN: Record<string, string> = {
   "Activar el lector de voz: lee lo que señalas o tocas": "Turn on the voice reader: reads what you point at or tap",
   "Lector activado. Pasa el mouse o toca un elemento para escucharlo.":
     "Reader on. Hover over or tap an item to hear it.",
+  "Lector activado. Toca un elemento para escucharlo y vuelve a tocarlo para abrirlo.":
+    "Reader on. Tap an item to hear it, and tap it again to open it.",
   "Lector desactivado.": "Reader off.",
 
   // --- Botones flotantes
-  Inscríbete: "Enroll",
   Contáctanos: "Contact us",
 
   // --- Pie de página

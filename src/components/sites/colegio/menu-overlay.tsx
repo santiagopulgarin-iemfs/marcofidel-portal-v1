@@ -21,6 +21,8 @@ export function MenuOverlay({ open, onClose }: { open: boolean; onClose: () => v
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    // Marca "menú abierto": oculta la barra de accesibilidad y los botones flotantes mientras dure
+    document.body.dataset.menuOpen = "true";
     closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -28,6 +30,7 @@ export function MenuOverlay({ open, onClose }: { open: boolean; onClose: () => v
     document.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prev;
+      delete document.body.dataset.menuOpen;
       document.removeEventListener("keydown", onKey);
     };
   }, [open, onClose]);
