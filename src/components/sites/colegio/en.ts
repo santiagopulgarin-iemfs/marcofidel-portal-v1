@@ -168,6 +168,8 @@ export const EN: Record<string, string> = {
 
   // --- Barra lateral de accesibilidad
   "Herramientas rápidas de accesibilidad": "Quick accessibility tools",
+  "Abrir herramientas de accesibilidad": "Open accessibility tools",
+  "Cerrar herramientas de accesibilidad": "Close accessibility tools",
   "Aumentar texto": "Increase text",
   "Disminuir texto": "Decrease text",
   "Aumentar texto (actual {n}%)": "Increase text (current {n}%)",
