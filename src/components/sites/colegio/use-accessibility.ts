@@ -38,7 +38,9 @@ function load() {
       scale: typeof raw.scale === "number" && raw.scale >= SCALE_MIN && raw.scale <= SCALE_MAX ? raw.scale : DEFAULTS.scale,
       mode: raw.mode === "high" || raw.mode === "dark" || raw.mode === "gray" ? raw.mode : DEFAULTS.mode,
       rate: (RATES as readonly number[]).includes(raw.rate ?? 0) ? (raw.rate as number) : DEFAULTS.rate,
-      hoverRead: raw.hoverRead === true,
+      // El lector NUNCA arranca activado al abrir la página: sin un toque o clic real del usuario el navegador
+      // no deja hablar, y un lector "activado" pero mudo confunde. Se vuelve a activar con el botón.
+      hoverRead: false,
     };
   } catch {
     /* sin almacenamiento o datos inválidos: se usan los valores por defecto */
@@ -94,15 +96,57 @@ function chunk(text: string, max = 180): string[] {
   return out;
 }
 
-/** Elige una voz del idioma del sitio (español preferentemente colombiano/latino; inglés de EE. UU.). */
-function pickVoice(lang: Lang): SpeechSynthesisVoice | undefined {
-  const voices = window.speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith(lang));
-  if (lang === "en") return voices.find((v) => /en[-_]us/i.test(v.lang)) ?? voices.find((v) => /en[-_]gb/i.test(v.lang)) ?? voices[0];
-  return (
-    voices.find((v) => /es[-_]co/i.test(v.lang)) ??
-    voices.find((v) => /es[-_](mx|us|419)/i.test(v.lang)) ??
-    voices[0]
-  );
+// Memoria de voces: algunas voces de Windows aparecen en la lista pero no arrancan (o lo hacen a ratos).
+// Se recuerda la última que SÍ habló y las que fallaron, para no insistir con una voz muda.
+const VOICE_KEY = "a11y-voice-ok";
+const badVoices = new Set<string>();
+let goodVoice: string | null | undefined; // undefined = aún no se leyó de localStorage
+
+function readGoodVoice(): string | null {
+  if (goodVoice === undefined) {
+    try {
+      goodVoice = localStorage.getItem(VOICE_KEY);
+    } catch {
+      goodVoice = null;
+    }
+  }
+  return goodVoice;
+}
+
+function rememberVoice(voice: SpeechSynthesisVoice | undefined, worked: boolean) {
+  if (!voice) return;
+  if (worked) {
+    badVoices.delete(voice.voiceURI);
+    goodVoice = voice.voiceURI;
+    try {
+      localStorage.setItem(VOICE_KEY, voice.voiceURI);
+    } catch {
+      /* sin almacenamiento: solo dura la sesión */
+    }
+  } else {
+    badVoices.add(voice.voiceURI);
+  }
+}
+
+/**
+ * Voces del idioma del sitio, de la mejor a la peor. La primera es la que se usa; cada reintento usa la siguiente.
+ * Orden: la que ya funcionó > preferencia de acento (español colombiano/latino, inglés de EE. UU.) > locales antes
+ * que en línea > las que fallaron van al final.
+ */
+function voiceCandidates(lang: Lang): SpeechSynthesisVoice[] {
+  const good = readGoodVoice();
+  const rank = (v: SpeechSynthesisVoice) => {
+    let r = 0;
+    if (v.voiceURI === good) r -= 100;
+    if (badVoices.has(v.voiceURI)) r += 100;
+    if (lang === "en") r += /en[-_]us/i.test(v.lang) ? 0 : /en[-_]gb/i.test(v.lang) ? 1 : 2;
+    else r += /es[-_]co/i.test(v.lang) ? 0 : /es[-_](mx|us|419)/i.test(v.lang) ? 1 : 2;
+    return r + (v.localService ? 0 : 0.5);
+  };
+  return window.speechSynthesis
+    .getVoices()
+    .filter((v) => v.lang.toLowerCase().startsWith(lang))
+    .sort((a, b) => rank(a) - rank(b));
 }
 
 /** Texto accesible de un elemento (para "leer al pasar el mouse o enfocar"). */
@@ -126,8 +170,11 @@ export function useAccessibility() {
   // Chrome puede descartar (GC) una locución antes de que dispare `onend`: se guardan referencias vivas.
   const liveUtterances = useRef<SpeechSynthesisUtterance[]>([]);
   // Qué se está leyendo: la página completa no debe ser interrumpida por la lectura de elementos sueltos.
-  const sourceRef = useRef<"page" | "item">("item");
+  const sourceRef = useRef<"page" | "item" | "system">("item");
   const speakingRef = useRef(false);
+  // Vigilancia del arranque: Chrome a veces acepta la frase pero no empieza a hablar (sobre todo la primera vez)
+  const watchdogRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const startedRef = useRef(false);
   const rateRef = useRef(p.rate);
   useEffect(() => {
     rateRef.current = p.rate;
@@ -143,6 +190,8 @@ export function useAccessibility() {
 
   const markIdle = useCallback(() => {
     speakingRef.current = false;
+    startedRef.current = false;
+    clearTimeout(watchdogRef.current);
     liveUtterances.current = [];
     setSpeaking(false);
     setPaused(false);
@@ -150,6 +199,7 @@ export function useAccessibility() {
 
   const stop = useCallback(() => {
     runId.current += 1;
+    clearTimeout(watchdogRef.current);
     if ("speechSynthesis" in window) {
       // `resume` antes de `cancel`: en Chrome, cancelar estando en pausa puede dejar la cola trabada
       window.speechSynthesis.resume();
@@ -159,38 +209,72 @@ export function useAccessibility() {
   }, [markIdle]);
 
   const speak = useCallback(
-    (text: string, source: "page" | "item" = "item") => {
+    (text: string, source: "page" | "item" | "system" = "item") => {
       if (!("speechSynthesis" in window)) return;
       const synth = window.speechSynthesis;
-      synth.cancel();
+      clearTimeout(watchdogRef.current);
       const id = ++runId.current;
       const parts = chunk(text);
       if (parts.length === 0) {
+        synth.cancel();
         markIdle();
         return;
       }
       const lang = getLang();
-      const voice = pickVoice(lang);
+      const candidates = voiceCandidates(lang);
       sourceRef.current = source;
       speakingRef.current = true;
+      startedRef.current = false;
       setSpeaking(true);
       setPaused(false);
-      const finish = () => {
-        if (id === runId.current) markIdle();
+
+      // Cada intento tiene su número: al reintentar, los eventos de error del intento anterior
+      // (el `cancel()` los dispara como "interrupted") no deben contar como fin de la lectura.
+      let attempt = 0;
+      const run = () => {
+        const mine = ++attempt;
+        const live = () => id === runId.current && mine === attempt;
+        // Cada reintento prueba la siguiente voz: si la primera no arranca, el problema suele ser esa voz
+        const voice = candidates.length ? candidates[(mine - 1) % candidates.length] : undefined;
+        // Solo se cancela si hay algo hablando o en cola, o si es un reintento: cancelar con el motor libre
+        // lo deja a veces mudo en Chrome.
+        if (mine > 1 || synth.speaking || synth.pending || synth.paused) synth.cancel();
+        const utterances = parts.map((part, i) => {
+          const u = new SpeechSynthesisUtterance(part);
+          u.lang = voice?.lang ?? (lang === "en" ? "en-US" : "es-ES");
+          if (voice) u.voice = voice;
+          u.rate = rateRef.current;
+          if (i === 0) {
+            u.onstart = () => {
+              if (!live()) return;
+              startedRef.current = true;
+              rememberVoice(voice, true);
+            };
+          }
+          u.onend = () => {
+            if (live() && i === parts.length - 1) markIdle();
+          };
+          u.onerror = () => {
+            if (live()) markIdle();
+          };
+          return u;
+        });
+        liveUtterances.current = utterances;
+        utterances.forEach((u) => synth.speak(u));
+
+        // Si no arrancó, se cancela y se vuelve a pedir (hasta 2 reintentos). El primer plazo es más largo porque
+        // el motor puede tardar más de 1 s en "despertar"; cancelar demasiado pronto lo vuelve a trabar.
+        watchdogRef.current = setTimeout(
+          () => {
+            if (!live() || startedRef.current) return;
+            rememberVoice(voice, false); // esta voz no arrancó: se baja en la lista
+            if (attempt < 3) run();
+            else markIdle(); // el navegador no deja hablar: se refleja en la interfaz
+          },
+          attempt === 1 ? 1400 : 1800,
+        );
       };
-      const utterances = parts.map((part, i) => {
-        const u = new SpeechSynthesisUtterance(part);
-        u.lang = voice?.lang ?? (lang === "en" ? "en-US" : "es-ES");
-        if (voice) u.voice = voice;
-        u.rate = rateRef.current;
-        u.onend = () => {
-          if (i === parts.length - 1) finish();
-        };
-        u.onerror = finish;
-        return u;
-      });
-      liveUtterances.current = utterances;
-      utterances.forEach((u) => synth.speak(u));
+      run();
     },
     [markIdle],
   );
@@ -206,7 +290,8 @@ export function useAccessibility() {
     if (!speaking || !supported) return;
     const synth = window.speechSynthesis;
     const timer = setInterval(() => {
-      if (!synth.speaking && !synth.pending && !synth.paused) markIdle();
+      // Solo después de haber oído el arranque: antes, el vigilante de arranque se encarga
+      if (startedRef.current && !synth.speaking && !synth.pending && !synth.paused) markIdle();
     }, 500);
     return () => clearInterval(timer);
   }, [speaking, supported, markIdle]);
@@ -226,33 +311,85 @@ export function useAccessibility() {
     if (!hoverRead || !supported) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let last: Element | null = null;
-    const say = (target: EventTarget | null, delay: number, force = false) => {
-      // No interrumpir la lectura de la página completa con lecturas sueltas
-      if (speakingRef.current && sourceRef.current === "page") return;
+    let pointerType = "mouse";
+    let tapped: { el: Element; at: number } | null = null;
+
+    const pick = (target: EventTarget | null) => {
       const el = (target as Element | null)?.closest?.(READABLE);
-      if (!el) return;
-      // Con el mouse no se repite el mismo elemento; con el dedo, cada toque se lee de nuevo
-      if (!force && el === last) return;
+      if (!el) return null;
       const text = accessibleText(el);
-      if (!text) return;
-      last = el;
+      return text ? { el, text } : null;
+    };
+    // No interrumpir la lectura de la página completa con lecturas sueltas
+    const blocked = () => speakingRef.current && sourceRef.current !== "item";
+
+    const onPointerDown = (e: PointerEvent) => {
+      pointerType = e.pointerType;
+    };
+
+    // Mouse: leer al pasar por encima. Los navegadores táctiles inventan un `mouseover` tras cada toque:
+    // se ignora, porque el toque ya se lee en `onClick` (si no, se leería dos veces).
+    const onOver = (e: MouseEvent) => {
+      // Sobre la barra de accesibilidad no se lee con el mouse: al activar un botón cambia su ícono, el navegador
+      // dispara un mouseover falso y el lector cortaría su propio aviso. Esos botones ya tienen su sugerencia (title).
+      if ((e.target as Element).closest?.("aside[aria-label]")) return;
+      if (pointerType === "touch" || blocked()) return;
+      const hit = pick(e.target);
+      if (!hit || hit.el === last) return;
+      last = hit.el;
       clearTimeout(timer);
-      timer = setTimeout(() => speak(text), delay);
+      timer = setTimeout(() => speak(hit.text), 350);
     };
-    const onOver = (e: MouseEvent) => say(e.target, 350);
-    const onFocus = (e: FocusEvent) => say(e.target, 0);
-    // Pantallas táctiles: leer al tocar (el mouse ya se cubre con `mouseover`)
-    const onTouch = (e: PointerEvent) => {
-      if (e.pointerType === "touch") say(e.target, 0, true);
+
+    // Teclado: leer al llegar con Tab (solo foco "visible", no el que causa un toque)
+    const onFocus = (e: FocusEvent) => {
+      if (blocked() || !(e.target as HTMLElement).matches?.(":focus-visible")) return;
+      const hit = pick(e.target);
+      if (!hit || hit.el === last) return;
+      last = hit.el;
+      clearTimeout(timer);
+      speak(hit.text);
     };
+
+    // Pantalla táctil, como un lector de pantalla: el primer toque LEE; tocar de nuevo lo mismo lo ABRE.
+    // Se lee de forma síncrona dentro del toque: iPhone solo permite hablar si se pide dentro del `click`.
+    // La barra de accesibilidad es la excepción: sus botones actúan con un solo toque.
+    const onClick = (e: MouseEvent) => {
+      if (pointerType !== "touch" || blocked()) return;
+      const hit = pick(e.target);
+      if (!hit) return;
+      const target = e.target as Element;
+      const control = target.closest("a,button,[role=button],input,select,label");
+      if (control && !target.closest("aside[aria-label]")) {
+        const again = tapped && tapped.el === control && Date.now() - tapped.at < 8000;
+        if (!again) {
+          e.preventDefault();
+          e.stopPropagation();
+          tapped = { el: control, at: Date.now() };
+          speak(hit.text);
+          return;
+        }
+        tapped = null; // segundo toque sobre lo mismo: se deja pasar para que abra
+        return;
+      }
+      speak(hit.text);
+    };
+
+    // El tipo de puntero se actualiza también al mover el mouse: así, en equipos con pantalla táctil y mouse,
+    // el mouse vuelve a leer sin necesidad de un clic (los eventos de mouse "inventados" tras un toque
+    // no generan eventos de puntero de tipo mouse, por eso esto no los confunde).
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("pointermove", onPointerDown, true);
     document.addEventListener("mouseover", onOver);
     document.addEventListener("focusin", onFocus);
-    document.addEventListener("pointerdown", onTouch);
+    document.addEventListener("click", onClick, true);
     return () => {
       clearTimeout(timer);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("pointermove", onPointerDown, true);
       document.removeEventListener("mouseover", onOver);
       document.removeEventListener("focusin", onFocus);
-      document.removeEventListener("pointerdown", onTouch);
+      document.removeEventListener("click", onClick, true);
     };
   }, [hoverRead, supported, speak]);
 
@@ -276,10 +413,19 @@ export function useAccessibility() {
   const setHoverRead = useCallback(
     (on: boolean) => {
       setPrefs({ hoverRead: on });
-      if (on) speak(translate(getLang(), "Lector activado. Pasa el mouse o toca un elemento para escucharlo."));
-      else {
+      if (on) {
+        // En pantallas táctiles el aviso explica el "primer toque lee, segundo toque abre"
+        const touch = typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+        const msg = translate(
+          getLang(),
+          touch
+            ? "Lector activado. Toca un elemento para escucharlo y vuelve a tocarlo para abrirlo."
+            : "Lector activado. Pasa el mouse o toca un elemento para escucharlo.",
+        );
+        speak(msg, "system");
+      } else {
         stop();
-        speak(translate(getLang(), "Lector desactivado."));
+        speak(translate(getLang(), "Lector desactivado."), "system");
       }
     },
     [speak, stop],
