@@ -128,3 +128,48 @@
     @apply font-sans;
   }
 }
+/* Accesibilidad: modos de contraste (se activan desde el panel del header) */
+html.a11y-high {
+  filter: contrast(1.35) saturate(1.1);
+}
+html.a11y-dark {
+  filter: invert(1) hue-rotate(180deg);
+}
+/* En modo oscuro las fotos y los elementos marcados conservan sus colores (se invierten de nuevo).
+   El logo NO se re-invierte: así se aclara y se lee sobre el fondo oscuro. */
+html.a11y-dark img,
+html.a11y-dark .a11y-keep {
+  /* Aproximación al color original: invertir dos veces recorta valores en colores muy saturados
+     (p. ej. el amarillo de los botones flotantes queda más claro), así que no es una inversión exacta. */
+  filter: hue-rotate(180deg) invert(1);
+}
+html.a11y-gray {
+  filter: grayscale(1);
+}
+
+/* Colegio tokens (layout/color/spacing only; no source assets or copy) */
+@theme {
+  --breakpoint-lg: 62rem; /* la UPB cambia a menú móvil a 992px */
+  --color-brand: #2f5a2d;
+  --color-action: #2a78ba;
+  --color-action-hover: #1d5a91;
+  --color-brand-active: #4e734c;
+  --color-promo: #cfe3cc;
+  --color-soft: #a9d6a3;
+  --color-soft-bg: #e1f0de;
+  --color-navy: #001735;
+  --color-ink: #1d1d1b;
+  --color-body: #666666;
+  --color-aqua: #59ccd9;
+  --color-violet: #7832dc;
+  --color-float: #ffcf35;
+  --color-float-hover: #ffd95e;
+  --color-deep: #3f7a3c;
+  --color-deep-hover: #509a4c;
+  --color-lime: #b9d70f;
+  --color-coral: #ef5350;
+  --color-footer-light: #e6e8ec;
+  --color-footer-dark: #1d1d1b;
+  --font-display: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  --font-ui: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
