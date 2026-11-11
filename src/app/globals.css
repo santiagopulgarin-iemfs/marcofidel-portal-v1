@@ -72,7 +72,9 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  /* En px, no en rem: así los bordes redondeados no crecen con el texto ampliado (A+),
+     igual que el espaciado protegido con [--spacing:4px]. 0.625rem a 16px = 10px. */
+  --radius: 10px;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -126,6 +128,11 @@
   }
   html {
     @apply font-sans;
+    /* Con el texto ampliado (A+), cualquier elemento que crezca un poco de más puede quedar más
+       ancho que la pantalla y aparece un scroll horizontal que desacomoda toda la página (la
+       barra de accesibilidad fija ya no queda pegada al borde). Esto recorta ese sobrante en vez
+       de dejarlo correr; nunca recorta contenido de ancho normal, solo lo que se pasa del borde. */
+    overflow-x: hidden;
   }
 }
 /* Accesibilidad: modos de contraste (se activan desde el panel del header) */
@@ -147,9 +154,17 @@ html.a11y-gray {
   filter: grayscale(1);
 }
 
+/* Menú a pantalla completa: verde vistoso en degradado (sin vidrio) */
+.menu-bg {
+  background-image: linear-gradient(160deg, var(--color-deep), var(--color-brand));
+}
+
 /* Colegio tokens (layout/color/spacing only; no source assets or copy) */
 @theme {
+  /* Cortes del contenedor de la UPB: 576, 768, 992 y 1200 px */
+  --breakpoint-xs: 36rem;
   --breakpoint-lg: 62rem; /* la UPB cambia a menú móvil a 992px */
+  --breakpoint-xl: 75rem;
   --color-brand: #2f5a2d;
   --color-action: #2a78ba;
   --color-action-hover: #1d5a91;

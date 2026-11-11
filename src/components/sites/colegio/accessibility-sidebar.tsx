@@ -1,20 +1,25 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Accessibility, Contrast, Moon, Volume2, VolumeX, X } from "lucide-react";
+import { Contrast, Moon, Volume2, VolumeX, X } from "lucide-react";
 import { useA11y } from "./accessibility-context";
+import { AccessibilityIcon } from "./accessibility-icon";
 import { useT } from "./i18n";
 import { SCALE_MAX, SCALE_MIN } from "./use-accessibility";
 
 const btn =
-  "flex size-9 items-center justify-center rounded-md border-2 border-white text-sm font-extrabold text-white transition-colors duration-150 hover:enabled:bg-white/20 focus-visible:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40 lg:size-11 lg:text-base";
+  "flex size-9 items-center justify-center rounded-md border-2 border-white text-[14px] font-extrabold text-white transition-colors duration-150 hover:enabled:bg-white/20 focus-visible:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40 lg:size-11 lg:text-[16px]";
+// Pestaña que abre y cierra el panel: más grande que los demás botones y sin el marco
+// cuadrado blanco (solo el ícono, con un resalte redondeado al pasar el mouse o tocar)
+const toggleBtn =
+  "flex size-11 items-center justify-center rounded-md text-white transition-colors duration-150 hover:bg-white/20 focus-visible:bg-white/20 lg:size-12";
 // Botón activo (modo encendido): fondo blanco y texto verde
 const active = "bg-white !text-deep hover:enabled:!bg-white/90";
 
 /**
  * Barra lateral de accesibilidad: tamaño de texto, contraste, modo oscuro y lector de voz.
- * En escritorio (lg+) está siempre abierta. En celular y tableta queda plegada en una pestaña pequeña
- * para no tapar el contenido: se abre al tocarla y se cierra al tocar fuera o con Escape.
+ * Queda plegada en una pestaña pequeña en cualquier tamaño de pantalla, para no tapar el
+ * contenido: se abre al tocarla y se cierra al tocar fuera o con Escape.
  */
 export function AccessibilitySidebar() {
   const t = useT();
@@ -43,22 +48,22 @@ export function AccessibilitySidebar() {
     <aside
       ref={ref}
       aria-label={t("Herramientas rápidas de accesibilidad")}
-      className="fixed right-0 top-1/3 z-[55] [body[data-menu-open]_&]:hidden flex flex-col gap-2 rounded-l-2xl bg-deep p-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.25)] lg:top-1/2 lg:-translate-y-1/2 lg:gap-3 lg:p-3"
+      className="fixed right-0 top-1/3 z-[55] [--spacing:4px] [body[data-menu-open]_&]:hidden flex flex-col gap-2 rounded-l-2xl bg-deep p-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.25)] lg:top-1/2 lg:-translate-y-1/2 lg:gap-3 lg:p-3"
     >
-      {/* Pestaña para abrir y cerrar (solo celular y tableta) */}
+      {/* Pestaña para abrir y cerrar (en cualquier tamaño de pantalla) */}
       <button
-        className={`${btn} lg:hidden`}
+        className={toggleBtn}
         title={open ? t("Cerrar herramientas de accesibilidad") : t("Abrir herramientas de accesibilidad")}
         aria-label={open ? t("Cerrar herramientas de accesibilidad") : t("Abrir herramientas de accesibilidad")}
         aria-expanded={open}
         aria-controls="a11y-tools"
         onClick={() => setOpen((v) => !v)}
       >
-        {open ? <X className="size-5" aria-hidden /> : <Accessibility className="size-5" aria-hidden />}
+        {open ? <X className="size-7" aria-hidden /> : <AccessibilityIcon className="size-7" aria-hidden />}
       </button>
 
-      {/* Herramientas: plegadas en celular hasta que se abre la pestaña; siempre visibles en escritorio */}
-      <div id="a11y-tools" className={`${open ? "flex" : "hidden"} flex-col gap-2 lg:flex lg:gap-3`}>
+      {/* Herramientas: plegadas hasta que se abre la pestaña, en cualquier tamaño de pantalla */}
+      <div id="a11y-tools" className={`${open ? "flex" : "hidden"} flex-col gap-2 lg:gap-3`}>
         <button
           className={btn}
           title={t("Aumentar texto")}

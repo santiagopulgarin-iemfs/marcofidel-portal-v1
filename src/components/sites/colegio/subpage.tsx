@@ -2,8 +2,7 @@ import { ArrowRight, ChevronRight, ExternalLink, Mail, Phone } from "lucide-reac
 import Link from "next/link";
 import { childrenOf, detailFor, hrefFor, SCHOOL, siblingsOf, type Page } from "./content";
 import { T, TImg } from "./i18n";
-
-const wrap = "mx-auto w-full max-w-[1240px] px-6 xl:px-0";
+import { wrap } from "./layout";
 
 const card =
   "group flex items-center justify-between gap-4 rounded-xl bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] focus-visible:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0";

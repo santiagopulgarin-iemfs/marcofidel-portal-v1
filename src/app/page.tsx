@@ -3,11 +3,10 @@ import Link from "next/link";
 import { Carousel } from "@/components/sites/colegio/carousel";
 import { hrefFor, offer, quickLinks } from "@/components/sites/colegio/content";
 import { T } from "@/components/sites/colegio/i18n";
+import { wrap } from "@/components/sites/colegio/layout";
 import { Placeholder } from "@/components/sites/colegio/placeholder";
 
-const wrap = "mx-auto w-full max-w-[1240px] px-6 xl:px-0";
-
-// Ícono de cada acceso rápido (verde claro; se oscurece un poco al pasar el mouse)
+// Ícono de cada acceso rápido: verde sobre la franja verde suave (como la tarjeta de la UPB, 32 px y 40 px desde tableta)
 const quickIcons: Record<string, LucideIcon> = {
   "Calendario escolar": CalendarDays,
   "Manual de convivencia": BookOpen,
@@ -18,7 +17,7 @@ function QuickIcon({ label }: { label: string }) {
   const Icon = quickIcons[label] ?? FileText;
   return (
     <Icon
-      className="size-10 text-soft transition-colors duration-200 group-hover:text-deep-hover group-focus-visible:text-deep-hover"
+      className="size-8 text-deep transition-colors duration-200 group-hover:text-brand group-focus-visible:text-brand md:size-10"
       strokeWidth={1.75}
       aria-hidden
     />
@@ -29,9 +28,12 @@ function Pill({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-3 rounded-md bg-deep px-6 py-[18px] text-lg font-extrabold text-white transition duration-200 ease-out hover:-translate-y-1.5 hover:bg-deep-hover hover:shadow-[0_10px_20px_rgba(0,0,0,0.18)] focus-visible:-translate-y-1.5 focus-visible:bg-deep-hover motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+      // Celular y tableta: dos por fila, pero el botón queda chico, del tamaño de su texto
+      // (no estira a ocupar toda la mitad). Desde escritorio, el mismo tamaño compacto en fila.
+      className="inline-flex items-center gap-2.5 rounded-md bg-deep px-5 py-3.5 text-base font-extrabold text-white transition duration-200 ease-out hover:-translate-y-1.5 hover:bg-deep-hover hover:shadow-[0_10px_20px_rgba(0,0,0,0.18)] focus-visible:-translate-y-1.5 focus-visible:bg-deep-hover motion-reduce:transition-none motion-reduce:hover:translate-y-0 md:text-lg lg:gap-3 lg:px-7 lg:py-5 lg:text-xl"
     >
-      {children} <ArrowUpRight className="size-4" />
+      <span className="break-words">{children}</span>
+      <ArrowUpRight className="size-5 shrink-0" />
     </Link>
   );
 }
@@ -39,6 +41,7 @@ function Pill({ href, children }: { href: string; children: React.ReactNode }) {
 export default function Home() {
   return (
     <main className="flex-1">
+      {/* Foto principal de borde a borde en todos los tamaños, sin esquinas redondeadas (como la de la UPB) */}
       <section className="relative h-[320px] w-full overflow-hidden md:h-[420px] lg:h-[480px]">
         <Placeholder className="size-full" label={<T>Imagen principal del colegio</T>} />
       </section>
@@ -48,10 +51,18 @@ export default function Home() {
           <Link
             key={q.label}
             href={hrefFor(q.link)}
-            className="group flex h-[135px] flex-col items-center justify-end gap-3 rounded-3xl border border-ink/30 pb-5 text-2xl font-extrabold transition duration-200 ease-out hover:-translate-y-2 hover:border-brand hover:shadow-[0_12px_24px_rgba(0,0,0,0.12)] focus-visible:-translate-y-2 focus-visible:border-brand motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+            className="group flex h-full min-h-[120px] flex-col overflow-hidden rounded-[24px] border-2 border-[#D1D1D1] bg-white transition duration-300 ease-out hover:-translate-y-2 hover:border-brand hover:shadow-[0_12px_24px_rgba(0,0,0,0.12)] focus-visible:-translate-y-2 focus-visible:border-brand motion-reduce:transition-none motion-reduce:hover:translate-y-0"
           >
-            <QuickIcon label={q.label} />
-            <T>{q.label}</T>
+            {/* Franja de color con el ícono (división de la tarjeta de la UPB) */}
+            <div className="flex w-full shrink-0 items-center justify-center bg-soft-bg py-4">
+              <QuickIcon label={q.label} />
+            </div>
+            {/* Título: 16 px en celular y 20 px desde tableta, negrita y centrado */}
+            <div className="flex flex-1 flex-col items-center gap-1 p-4 text-center md:gap-2 md:px-6 md:py-4">
+              <span className="break-words text-base font-bold text-ink md:text-xl">
+                <T>{q.label}</T>
+              </span>
+            </div>
           </Link>
         ))}
       </section>
@@ -60,7 +71,7 @@ export default function Home() {
         <h2 className="text-4xl font-extrabold leading-[41px]">
           <T>Programas y énfasis</T>
         </h2>
-        <div className="mt-8 flex flex-col items-start gap-4 lg:flex-row lg:flex-wrap">
+        <div className="mt-8 grid grid-cols-2 items-start justify-items-start gap-4 lg:flex lg:flex-row lg:flex-wrap">
           {offer.map((o) => (
             <Pill key={o} href={hrefFor(o)}>
               <T>{o}</T>

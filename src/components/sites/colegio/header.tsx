@@ -1,23 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Menu, Search, Users } from "lucide-react";
 import Link from "next/link";
-import { audiences, groupHref, hrefFor, itemHref, nav, searchEntries, sectionHref } from "./content";
-import { LangFlag } from "./flags";
-import { setLang, useLang, useT, type Lang } from "./i18n";
+import { audiences, groupHref, hrefFor, itemHref, nav, sectionHref } from "./content";
+import { LangFlag, languages } from "./flags";
+import { wideWrap } from "./layout";
+import { setLang, useLang, useT } from "./i18n";
 import { Logo } from "./logo";
 import { MenuOverlay } from "./menu-overlay";
+import { useSiteSearch } from "./use-site-search";
 
 type PanelId = "lang" | "info" | "search";
-
-// Los nombres de los idiomas se muestran siempre en su propio idioma
-const languages: { code: Lang; label: string }[] = [
-  { code: "es", label: "Español" },
-  { code: "en", label: "English" },
-];
-
-const normalize = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 export function Header() {
   const t = useT();
@@ -27,7 +21,7 @@ export function Header() {
   const [panel, setPanel] = useState<PanelId | null>(null);
   const [query, setQuery] = useState("");
   const barRef = useRef<HTMLDivElement>(null);
-  const entries = useMemo(() => searchEntries(), []);
+  const results = useSiteSearch(query);
 
   // Cerrar el panel abierto con clic afuera o con Escape
   useEffect(() => {
@@ -46,16 +40,6 @@ export function Header() {
     };
   }, [panel]);
 
-  // La búsqueda se hace sobre los textos del idioma activo (`t` cambia con el idioma)
-  const results = useMemo(() => {
-    const q = normalize(query.trim());
-    if (q.length < 2) return [];
-    return entries
-      .map((e) => ({ href: e.href, label: t(e.label), context: e.trail.map((x) => t(x)).join(" › ") }))
-      .filter((e) => normalize(e.label).includes(q))
-      .slice(0, 8);
-  }, [query, entries, t]);
-
   const toggle = (id: PanelId) => setPanel((p) => (p === id ? null : id));
 
   const actionBtn =
@@ -63,14 +47,15 @@ export function Header() {
   const label = "hidden lg:inline";
   // Celular: panel fijo a lo ancho de la pantalla (no se corta). Escritorio: anclado al botón.
   const popoverBase =
-    "fixed inset-x-4 top-[4.5rem] z-50 max-h-[calc(100dvh-5.5rem)] overflow-y-auto rounded-xl bg-white p-4 text-left text-sm font-medium text-ink shadow-[0_12px_32px_rgba(0,0,0,0.16)] lg:absolute lg:inset-x-auto lg:right-0 lg:top-full lg:mt-2";
+    "fixed inset-x-4 top-[72px] z-50 max-h-[calc(100dvh-88px)] overflow-y-auto rounded-xl bg-white p-4 text-left text-sm font-medium text-ink shadow-[0_12px_32px_rgba(0,0,0,0.16)] lg:absolute lg:inset-x-auto lg:right-0 lg:top-full lg:mt-2";
   const popover = `${popoverBase} lg:w-72`;
   const popoverWide = `${popoverBase} lg:w-80`;
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white lg:contents">
-      <div className="relative z-[60] w-full bg-white">
-        <div className="mx-auto flex max-w-[1521px] items-center justify-between gap-3 px-4 py-4 min-[400px]:gap-6 min-[400px]:px-6 lg:h-[88px] lg:px-[60px] lg:py-0">
+      <div className="relative z-[60] w-full bg-white border-b border-white/40 shadow-[0_1px_0_rgba(0,0,0,0.04)]">
+        {/* [--spacing:4px]: los íconos, el logo y los botones de esta barra miden lo mismo con el texto ampliado */}
+        <div className={`${wideWrap} flex items-center justify-between gap-3 [--spacing:4px] py-4 min-[400px]:gap-6 lg:h-[88px] lg:py-0`}>
           <Link href="/" aria-label={t("Ir al inicio")} className="flex shrink-0 items-center gap-2 min-[400px]:gap-3">
             {/* Decorativo: el enlace ya tiene su nombre accesible */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -81,12 +66,14 @@ export function Header() {
               height={646}
               className="h-9 w-auto min-[400px]:h-11 lg:h-14"
             />
-            <Logo className="h-7 min-[400px]:h-9 lg:h-[42px]" />
+            {/* Letras IEMFS más pequeñas que el escudo (que es el protagonista) */}
+            <Logo className="h-5 min-[400px]:h-6 lg:h-8" />
           </Link>
 
           <div ref={barRef} className="relative flex items-center gap-0.5 font-ui text-[15px] font-bold lg:gap-4">
+            {/* Idioma, Información para ti y Búsqueda: solo escritorio. En celular y tableta están dentro del menú. */}
             {/* Idioma */}
-            <div className="relative">
+            <div className="relative hidden lg:block">
               <button className={actionBtn} aria-label={t("Idioma")} aria-expanded={panel === "lang"} onClick={() => toggle("lang")}>
                 <LangFlag code={lang} />
                 <span className={label}>{t("Idioma")}</span>
@@ -120,7 +107,7 @@ export function Header() {
             </div>
 
             {/* Información para ti */}
-            <div className="relative">
+            <div className="relative hidden lg:block">
               <button
                 className={actionBtn}
                 aria-label={t("Información para ti")}
@@ -144,7 +131,7 @@ export function Header() {
             </div>
 
             {/* Búsqueda */}
-            <div className="relative">
+            <div className="relative hidden lg:block">
               <button className={actionBtn} aria-label={t("Búsqueda")} aria-expanded={panel === "search"} onClick={() => toggle("search")}>
                 <Search className="size-5" />
                 <span className={label}>{t("Búsqueda")}</span>
@@ -195,7 +182,7 @@ export function Header() {
                 setMenuOpen(true);
               }}
             >
-              <Menu className="size-5" />
+              <Menu className="size-7" strokeWidth={1.75} />
               <span className={label}>{t("Menú")}</span>
             </button>
           </div>
@@ -204,7 +191,9 @@ export function Header() {
 
       {/* Barra de secciones (solo escritorio; en celular se usa el botón Menú) */}
       <nav className="hidden bg-brand lg:sticky lg:top-0 lg:z-50 lg:block" onMouseLeave={() => setDrop(null)}>
-        <div className="mx-auto flex h-[76px] max-w-[1521px] items-stretch">
+        {/* Mismo contenedor que la barra de arriba (wideWrap): así el menú y el CTA quedan
+            alineados con el escudo y los botones de arriba, sin pegarse a los bordes */}
+        <div className={`${wideWrap} flex min-h-[76px] items-stretch`}>
           <ul className="flex flex-1 font-ui text-base font-medium text-white">
             {nav.map((n, i) => {
               const active = drop === i;
@@ -217,7 +206,7 @@ export function Header() {
                         className={`pointer-events-none absolute left-1/2 top-full z-10 size-0 -translate-x-1/2 border-x-[8px] border-t-[8px] border-x-transparent border-t-brand-active transition-opacity duration-150 ${active ? "opacity-100" : "opacity-0"}`}
                       />
                     )}
-                    <Link href={sectionHref(n)} onClick={() => setDrop(null)} className="flex h-full items-center gap-1.5 px-5 py-6">
+                    <Link href={sectionHref(n)} onClick={() => setDrop(null)} className="flex h-full items-center gap-1.5 px-5 py-[20px]">
                       {t(n.label)}
                       {n.menu && <ChevronDown className={`size-4 transition-transform ${active ? "rotate-180" : ""}`} />}
                     </Link>
@@ -279,7 +268,7 @@ export function Header() {
           <Link
             href={hrefFor("Proceso de admisión")}
             onClick={() => setDrop(null)}
-            className="mr-[60px] flex items-center justify-center bg-action px-6 py-4 font-ui font-medium text-white transition-colors duration-150 hover:bg-action-hover focus-visible:bg-action-hover"
+            className="flex shrink-0 items-center justify-center bg-action px-6 py-4 font-ui font-medium text-white transition-colors duration-150 hover:bg-action-hover focus-visible:bg-action-hover"
           >
             {t("Cómo inscribirse")}
           </Link>

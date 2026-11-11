@@ -9,7 +9,7 @@ const actions = [
 
 export function FloatingActions() {
   return (
-    <div className="fixed bottom-[calc(1.5rem_+_env(safe-area-inset-bottom))] right-6 z-[60] grid gap-3 [body[data-menu-open]_&]:hidden">
+    <div className="fixed bottom-[calc(24px_+_env(safe-area-inset-bottom))] right-6 z-[60] grid gap-3 [--spacing:4px] [body[data-menu-open]_&]:hidden">
       {actions.map(({ t, I, to }) => (
         <Link
           key={t}

@@ -36,6 +36,12 @@ function UsaFlag() {
   );
 }
 
+/** Idiomas disponibles. Los nombres se muestran siempre en su propio idioma. */
+export const languages: { code: Lang; label: string }[] = [
+  { code: "es", label: "Español" },
+  { code: "en", label: "English" },
+];
+
 /** Bandera del idioma: español (Colombia) o inglés (Estados Unidos). Decorativa: el nombre va en el texto. */
 export function LangFlag({ code, className = "" }: { code: Lang; className?: string }) {
   return (

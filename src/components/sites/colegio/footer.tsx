@@ -2,6 +2,7 @@ import Link from "next/link";
 import { footerSitemap, hrefFor, SCHOOL } from "./content";
 import { CurrentYear } from "./current-year";
 import { T, TImg } from "./i18n";
+import { wideWrap } from "./layout";
 import { Logo } from "./logo";
 import { SocialLinks } from "./social-links";
 
@@ -12,7 +13,7 @@ export function Footer() {
   return (
     <footer>
       <div className="bg-footer-light text-navy">
-        <div className="mx-auto grid max-w-[1440px] grid-cols-1 gap-12 px-5 py-12 lg:grid-cols-12 lg:gap-8 lg:py-16">
+        <div className={`${wideWrap} grid grid-cols-1 gap-12 py-12 lg:grid-cols-12 lg:gap-8 lg:py-16`}>
           {/* Marca (4 de 12 columnas) */}
           <div className="flex flex-col gap-10 lg:col-span-4">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
@@ -87,7 +88,7 @@ export function Footer() {
       </div>
 
       <div className="bg-footer-dark text-white">
-        <div className="mx-auto grid max-w-[1521px] gap-10 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4 lg:px-[60px]">
+        <div className={`${wideWrap} grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-4`}>
           <div className="max-w-[314px] text-lg">
             <h4 className="font-extrabold">
               <T>Sede principal</T>
