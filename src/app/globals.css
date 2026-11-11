@@ -154,9 +154,14 @@ html.a11y-gray {
   filter: grayscale(1);
 }
 
-/* Menú a pantalla completa: verde vistoso en degradado (sin vidrio) */
-.menu-bg {
-  background-image: linear-gradient(160deg, var(--color-deep), var(--color-brand));
+/* Menú a pantalla completa: verde vistoso en degradado (sin vidrio).
+   Dentro de @layer components (no suelta): en el build de producción una clase propia
+   fuera de una capa reconocida por Tailwind se estaba perdiendo (no pasaba en desarrollo
+   local, sí en el sitio publicado — el menú de celular quedaba transparente). */
+@layer components {
+  .menu-bg {
+    background-image: linear-gradient(160deg, var(--color-deep), var(--color-brand));
+  }
 }
 
 /* Colegio tokens (layout/color/spacing only; no source assets or copy) */
